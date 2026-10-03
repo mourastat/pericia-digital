@@ -1,0 +1,605 @@
+<title>Perícia Digital do Dado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700;800&family=Special+Elite&display=swap">
+<style>
+/* Layout: bancada de perícia em uma coluna. Laudo no topo, provas (cartões e gráfico) no meio, controles logo abaixo. Visual noir único, como os slides. */
+:root {
+  --bg: #121417;
+  --panel: #1B1F25;
+  --panel-2: #23282F;
+  --line: #363B44;
+  --fg: #EFE8DA;
+  --muted: #ADA79B;
+  --tape: #F2C230;
+  --red: #E5533D;
+  --a: #FF8A3D;
+  --b: #3DA5FF;
+  --display: 'Bebas Neue', Impact, 'Arial Narrow', sans-serif;
+  --body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --type: 'Special Elite', 'Courier New', monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { background: var(--bg); color: var(--fg); }
+body {
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-inline: clamp(16px, 4vw, 48px);
+  padding-block: 0 56px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+.tape {
+  margin-inline: calc(-1 * clamp(16px, 4vw, 48px));
+  background: var(--tape);
+  color: var(--bg);
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-block: 6px;
+  text-transform: uppercase;
+}
+
+header { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; }
+.eyebrow { font-family: var(--type); color: var(--tape); letter-spacing: 0.08em; text-transform: uppercase; font-size: 15px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(56px, 9vw, 120px); line-height: 0.9; margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); font-size: clamp(16px, 1.6vw, 19px); max-width: 62ch; margin: 0; }
+.lede b { color: var(--fg); }
+
+nav { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.tab {
+  font: 500 16px var(--body);
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 10px 14px 9px;
+  cursor: pointer;
+}
+@media (max-width: 420px) { .tab { font-size: 15px; padding-inline: 10px; } }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--tape); }
+.tab:hover { color: var(--fg); }
+.tab:focus-visible, button:focus-visible { outline: 3px solid var(--tape); outline-offset: 2px; }
+
+.panel { display: flex; flex-direction: column; gap: 20px; }
+
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 680px) { .cards { grid-template-columns: 1fr; } }
+.card {
+  background: var(--panel);
+  border-top: 6px solid var(--accent);
+  border-radius: 10px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.card.a { --accent: var(--a); }
+.card.b { --accent: var(--b); }
+.card.k { --accent: var(--red); }
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.label { font-weight: 800; font-size: 20px; color: var(--accent); }
+.rule { font-family: var(--type); color: var(--muted); font-size: 14px; }
+.big {
+  font-family: var(--display);
+  font-size: clamp(64px, 10vw, 132px);
+  line-height: 0.95;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.meta { color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+.meta b { color: var(--fg); font-weight: 700; }
+.last { display: flex; align-items: center; gap: 10px; min-height: 52px; margin-top: 6px; }
+.die { width: 46px; height: 46px; flex: none; }
+.chip {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.chip.win { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.chip.a { background: var(--a); color: var(--bg); border-color: var(--a); }
+.chip.b { background: var(--b); color: var(--bg); border-color: var(--b); }
+
+.chartbox { background: var(--panel); border-radius: 10px; padding: 16px 16px 8px; min-width: 0; }
+.chartbox canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px; color: var(--muted); padding: 8px 4px 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 22px; height: 0; border-top: 3px solid var(--c); }
+.sw.dash { border-top-style: dashed; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn {
+  font: 700 16px var(--body);
+  font-variant-numeric: tabular-nums;
+  color: var(--bg);
+  background: var(--tape);
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 20px;
+  cursor: pointer;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+.btn.ghost:hover { border-color: var(--muted); }
+.controls .sep { flex: 1; }
+
+.verdict {
+  font-family: var(--type);
+  font-size: clamp(17px, 1.8vw, 22px);
+  line-height: 1.45;
+  background: var(--panel-2);
+  border-left: 4px solid var(--red);
+  padding: 14px 18px;
+  margin: 0;
+  max-width: 70ch;
+}
+
+.tablewrap { overflow-x: auto; background: var(--panel); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 560px; }
+th, td { padding: 12px 16px; text-align: right; border-bottom: 1px solid var(--line); }
+th { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+th:first-child, td:first-child { text-align: left; }
+td:last-child, th:last-child { text-align: center; }
+tr.total td { font-weight: 800; border-bottom: 0; background: var(--panel-2); }
+td.ca { color: var(--a); }
+td.cb { color: var(--b); }
+@media (max-width: 560px) {
+  table { min-width: 0; }
+  th, td { padding: 10px 8px; }
+  th:nth-child(2), td:nth-child(2), th:nth-child(4), td:nth-child(4) { display: none; }
+  td .chip { font-size: 11px; padding: 2px 8px; white-space: nowrap; }
+}
+.empty { color: var(--muted); text-align: center !important; padding: 28px 16px; font-family: var(--type); }
+
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 680px) { .stats { grid-template-columns: 1fr; } }
+.stat { background: var(--panel); border-radius: 10px; padding: 18px 22px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stat .big { font-size: clamp(56px, 8vw, 96px); color: var(--tape); }
+.stat p { margin: 0; color: var(--muted); }
+
+.offer {
+  align-self: flex-start;
+  font-family: var(--display);
+  font-size: clamp(40px, 6vw, 72px);
+  line-height: 1;
+  background: var(--tape);
+  color: var(--bg);
+  padding: 10px 24px;
+  border-radius: 6px;
+  transform: rotate(-1.5deg);
+}
+.k3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .k3 { grid-template-columns: 1fr; } }
+.card.k3card .big { font-size: clamp(52px, 7vw, 96px); }
+.card.k3card.house { --accent: var(--tape); }
+.card.k3card.avg { --accent: var(--fg); }
+
+footer { color: var(--muted); font-size: 13px; font-family: var(--type); border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="tape" aria-hidden="true">Não ultrapasse · Perícia digital em andamento · Não ultrapasse · Perícia digital em andamento · Não ultrapasse · Perícia digital em andamento</div>
+
+  <header>
+    <p class="eyebrow">Caso nº 36 · Episódio 5</p>
+    <h1>Perícia digital</h1>
+    <p class="lede">O laudo diz que a <b>Estratégia A</b> vence em 33,3% das rodadas e a <b>Estratégia B</b>, em 41,7%. Lance os dados quantas vezes quiser e veja se as provas confirmam.</p>
+  </header>
+
+  <nav role="tablist" aria-label="Investigações">
+    <button class="tab" role="tab" id="tab-laudo" aria-controls="p-laudo" aria-selected="true">Laudo × provas</button>
+    <button class="tab" role="tab" id="tab-turma" aria-controls="p-turma" aria-selected="false">A turma</button>
+    <button class="tab" role="tab" id="tab-banca" aria-controls="p-banca" aria-selected="false">A banca</button>
+  </nav>
+
+  <!-- Laudo × provas -->
+  <section class="panel" id="p-laudo" role="tabpanel" aria-labelledby="tab-laudo">
+    <div class="cards">
+      <article class="card a">
+        <div class="card-head"><span class="label">Estratégia A</span><span class="rule">um dado · vence com 5 ou 6</span></div>
+        <div class="big" id="fa">—</div>
+        <div class="meta"><b id="wa">0</b> vitórias em <b id="na">0</b> rodadas</div>
+        <div class="meta">Laudo: 33,3% · distância: <b id="da">—</b></div>
+        <div class="last" id="lastA"></div>
+      </article>
+      <article class="card b">
+        <div class="card-head"><span class="label">Estratégia B</span><span class="rule">dois dados · vence com soma 8 ou mais</span></div>
+        <div class="big" id="fb">—</div>
+        <div class="meta"><b id="wb">0</b> vitórias em <b id="nb">0</b> rodadas</div>
+        <div class="meta">Laudo: 41,7% · distância: <b id="db">—</b></div>
+        <div class="last" id="lastB"></div>
+      </article>
+    </div>
+
+    <div class="controls" aria-label="Lançar dados">
+      <button class="btn" data-n="1" id="r1">Lançar 1 vez</button>
+      <button class="btn" data-n="10" id="r10">+10</button>
+      <button class="btn" data-n="100" id="r100">+100</button>
+      <button class="btn" data-n="1000" id="r1000">+1.000</button>
+      <button class="btn" data-n="10000" id="r10000">+10.000</button>
+      <span class="sep"></span>
+      <button class="btn ghost" id="reset">Recomeçar</button>
+    </div>
+
+    <p class="verdict" id="verdict" aria-live="polite"></p>
+
+    <div class="chartbox">
+      <canvas id="chartMain" aria-label="Frequência de vitórias de A e de B ao longo das rodadas, com as linhas do laudo"></canvas>
+      <div class="legend">
+        <span><i class="sw" style="--c: var(--a)"></i>Estratégia A</span>
+        <span><i class="sw" style="--c: var(--b)"></i>Estratégia B</span>
+        <span><i class="sw dash" style="--c: var(--a)"></i>laudo A · 33,3%</span>
+        <span><i class="sw dash" style="--c: var(--b)"></i>laudo B · 41,7%</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- A turma -->
+  <section class="panel" id="p-turma" role="tabpanel" aria-labelledby="tab-turma" hidden>
+    <p class="lede">Uma turma tem 5 equipes. Cada equipe joga <b>30 rodadas de A e 30 de B</b>, como na oficina. Quantas equipes veem A empatar ou vencer, mesmo com o laudo dizendo o contrário?</p>
+    <div class="controls">
+      <button class="btn" id="t1">Simular uma turma</button>
+      <button class="btn ghost" id="t1000">Simular 1.000 turmas</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Equipe</th><th>Vitórias A</th><th>% A</th><th>Vitórias B</th><th>% B</th><th>Quem venceu</th></tr></thead>
+        <tbody id="tbody"><tr><td class="empty" colspan="6">Toque em "Simular uma turma" para gerar o placar.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="stats" id="tstats" hidden>
+      <div class="stat"><div class="big" id="sTeam">—</div><p>das <b id="sTeamN">5.000</b> equipes viram A empatar ou vencer B em 30 rodadas.</p></div>
+      <div class="stat"><div class="big" id="sClass">—</div><p>das <b>1.000</b> turmas tiveram o total de A empatando ou vencendo B (150 rodadas).</p></div>
+    </div>
+    <p class="verdict" id="tverdict" aria-live="polite">Uma equipe sozinha pode contrariar o laudo. Somar as equipes reduz muito essa chance.</p>
+  </section>
+
+  <!-- A banca -->
+  <section class="panel" id="p-banca" role="tabpanel" aria-labelledby="tab-banca" hidden>
+    <p class="offer">Triplique sua ficha!</p>
+    <p class="lede">Cada jogada custa <b>1 ficha</b>. Lance dois dados: se a soma for <b>10, 11 ou 12</b>, você recebe <b>3 fichas</b>. O laudo calcula que o jogador perde, em média, <b>0,5 ficha por jogada</b>.</p>
+    <div class="k3">
+      <article class="card k k3card">
+        <div class="card-head"><span class="label">Saldo do jogador</span></div>
+        <div class="big" id="kNet">0</div>
+        <div class="meta"><b id="kWins">0</b> vitórias em <b id="kN">0</b> jogadas</div>
+        <div class="last" id="kLast"></div>
+      </article>
+      <article class="card k3card house">
+        <div class="card-head"><span class="label">Saldo da banca</span></div>
+        <div class="big" id="kHouse">0</div>
+        <div class="meta">o que o jogador perde, a banca ganha</div>
+      </article>
+      <article class="card k3card avg">
+        <div class="card-head"><span class="label">Média por jogada</span></div>
+        <div class="big" id="kAvg">—</div>
+        <div class="meta">laudo: −0,5 ficha</div>
+      </article>
+    </div>
+    <div class="controls">
+      <button class="btn" data-k="1" id="k1">Jogar 1 vez</button>
+      <button class="btn" data-k="20" id="k20">+20 (uma equipe)</button>
+      <button class="btn" data-k="100" id="k100">+100 (a turma)</button>
+      <button class="btn" data-k="10000" id="k10000">+10.000 (um dia de banca)</button>
+      <span class="sep"></span>
+      <button class="btn ghost" id="kreset">Recomeçar</button>
+    </div>
+    <p class="verdict" id="kverdict" aria-live="polite"></p>
+    <div class="chartbox">
+      <canvas id="chartBank" aria-label="Média de fichas ganhas ou perdidas por jogada ao longo das jogadas, com a linha do laudo em menos 0,5"></canvas>
+      <div class="legend">
+        <span><i class="sw" style="--c: var(--red)"></i>média do jogador por jogada</span>
+        <span><i class="sw dash" style="--c: var(--tape)"></i>laudo · −0,5 ficha</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>Cada rodada da aba "Laudo × provas" lança o dado de A e os dois dados de B. Os lançamentos são sorteados pelo navegador, um a um, a cada toque.</footer>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const css = getComputedStyle(document.documentElement);
+  const C = {};
+  ['bg', 'panel', 'line', 'fg', 'muted', 'tape', 'red', 'a', 'b'].forEach((k) => { C[k] = css.getPropertyValue('--' + k).trim(); });
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const d6 = () => 1 + Math.floor(Math.random() * 6);
+  const fmtInt = (n) => n.toLocaleString('pt-BR');
+  const fmtPct = (x) => (x * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  const fmtPP = (x) => (x * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero' }) + ' p.p.';
+  const fmtSigned = (n) => n.toLocaleString('pt-BR', { signDisplay: 'exceptZero' });
+  const fmtDec = (x) => x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero' });
+
+  const PIPS = {
+    1: [[50, 50]], 2: [[28, 28], [72, 72]], 3: [[28, 28], [50, 50], [72, 72]],
+    4: [[28, 28], [72, 28], [28, 72], [72, 72]], 5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+    6: [[28, 24], [72, 24], [28, 50], [72, 50], [28, 76], [72, 76]]
+  };
+  function die(v, fill) {
+    return '<svg class="die" viewBox="0 0 100 100" role="img" aria-label="dado mostrando ' + v + '">' +
+      '<rect x="4" y="4" width="92" height="92" rx="18" fill="' + fill + '"/>' +
+      PIPS[v].map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r="9" fill="' + C.bg + '"/>').join('') + '</svg>';
+  }
+  const chip = (win) => '<span class="chip' + (win ? ' win' : '') + '">' + (win ? 'vitória' : 'derrota') + '</span>';
+
+  /* ---------- gráfico (eixo x logarítmico) ---------- */
+  function drawChart(cv, o) {
+    const box = cv.parentElement;
+    const w = Math.max(240, box.clientWidth - 32);
+    if (!box.clientWidth) return;
+    const h = Math.round(Math.min(420, Math.max(240, w * 0.4)));
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    cv.style.height = h + 'px';
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    const pad = { l: 58, r: 14, t: 12, b: 48 };
+    const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+    const nMax = Math.max(10, o.n);
+    const lx = Math.log10(nMax);
+    const X = (n) => pad.l + (Math.log10(Math.max(1, n)) / lx) * pw;
+    const clamp = (v) => Math.max(o.yMin, Math.min(o.yMax, v));
+    const Y = (v) => pad.t + (1 - (clamp(v) - o.yMin) / (o.yMax - o.yMin)) * ph;
+
+    c.lineWidth = 1;
+    c.strokeStyle = C.line;
+    c.fillStyle = C.muted;
+    c.font = '13px "DM Sans", system-ui, sans-serif';
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    o.yTicks.forEach((v) => {
+      const y = Y(v);
+      c.beginPath(); c.moveTo(pad.l, y); c.lineTo(pad.l + pw, y); c.stroke();
+      c.fillText(o.yFmt(v), pad.l - 8, y);
+    });
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (let p = 0; p <= Math.floor(lx + 1e-9); p++) {
+      const n = Math.pow(10, p), x = X(n);
+      c.beginPath(); c.moveTo(x, pad.t); c.lineTo(x, pad.t + ph); c.stroke();
+      c.fillText(fmtInt(n), x, pad.t + ph + 8);
+    }
+    c.fillText(o.xLabel, pad.l + pw / 2, pad.t + ph + 28);
+
+    o.refs.forEach((r) => {
+      const y = Y(r.y);
+      c.save(); c.setLineDash([7, 6]); c.strokeStyle = r.color; c.lineWidth = 2; c.globalAlpha = 0.85;
+      c.beginPath(); c.moveTo(pad.l, y); c.lineTo(pad.l + pw, y); c.stroke(); c.restore();
+    });
+
+    o.series.forEach((s) => {
+      const pts = s.pts;
+      if (!pts.length) return;
+      c.save();
+      c.beginPath();
+      pts.forEach(([n, v], i) => { const x = X(n), y = Y(v); if (i) c.lineTo(x, y); else c.moveTo(x, y); });
+      c.strokeStyle = s.color; c.lineWidth = 3; c.lineJoin = 'round'; c.lineCap = 'round'; c.stroke();
+      const [n, v] = pts[pts.length - 1];
+      c.beginPath(); c.arc(X(n), Y(v), 5.5, 0, Math.PI * 2); c.fillStyle = s.color; c.fill();
+      c.restore();
+    });
+
+    if (!o.n) {
+      c.fillStyle = C.muted; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.font = '17px "Special Elite", "Courier New", monospace';
+      c.fillText(o.empty, pad.l + pw / 2, pad.t + ph / 2);
+    }
+  }
+
+  /* ---------- executor em lotes, animado ---------- */
+  function makeRunner(step, render) {
+    let remaining = 0, chunk = 1, raf = 0;
+    function frame() {
+      const k = Math.min(chunk, remaining);
+      for (let i = 0; i < k; i++) step();
+      remaining -= k;
+      render();
+      raf = remaining > 0 ? requestAnimationFrame(frame) : 0;
+    }
+    return {
+      add(count) {
+        remaining += count;
+        chunk = reduce ? remaining : Math.max(1, Math.ceil(remaining / 50));
+        if (!raf) raf = requestAnimationFrame(frame);
+      },
+      stop() { remaining = 0; if (raf) cancelAnimationFrame(raf); raf = 0; }
+    };
+  }
+
+  function recorder(st, values) {
+    const L = Math.log10(st.n);
+    if (st.n <= 30 || L - st.lastLog >= 0.008) {
+      st.lastLog = L;
+      values.forEach(([arr, v]) => arr.push([st.n, v]));
+    }
+  }
+
+  /* ---------- aba 1: laudo × provas ---------- */
+  const S = { n: 0, wa: 0, wb: 0, pa: [], pb: [], lastLog: -1, last: null };
+  function stepMain() {
+    const a = d6(), b1 = d6(), b2 = d6();
+    S.n++;
+    if (a >= 5) S.wa++;
+    if (b1 + b2 >= 8) S.wb++;
+    S.last = { a, b1, b2 };
+    recorder(S, [[S.pa, S.wa / S.n], [S.pb, S.wb / S.n]]);
+  }
+  function verdictMain() {
+    const n = S.n;
+    if (!n) return 'Lance os dados para começar a coleta de provas.';
+    const fa = S.wa / n, fb = S.wb / n;
+    const lead = fa > fb ? 'Por enquanto, A está na frente. Isso prova que A é melhor?' :
+      fa === fb ? 'Empate entre A e B. O laudo estava errado?' :
+      'B está na frente, como previa o laudo.';
+    if (n < 100) return lead + ' Com ' + fmtInt(n) + (n === 1 ? ' rodada' : ' rodadas') + ', qualquer coisa pode acontecer.';
+    if (n < 2000) return lead + ' Com ' + fmtInt(n) + ' rodadas, as frequências ainda oscilam, mas já se aproximam do laudo.';
+    return 'Com ' + fmtInt(n) + ' rodadas, A está em ' + fmtPct(fa) + ' e B em ' + fmtPct(fb) + '. Não mudou o dado nem a regra. Mudou a quantidade de evidência.';
+  }
+  function renderMain() {
+    const n = S.n;
+    $('na').textContent = fmtInt(n); $('nb').textContent = fmtInt(n);
+    $('wa').textContent = fmtInt(S.wa); $('wb').textContent = fmtInt(S.wb);
+    $('fa').textContent = n ? fmtPct(S.wa / n) : '—';
+    $('fb').textContent = n ? fmtPct(S.wb / n) : '—';
+    $('da').textContent = n ? fmtPP(S.wa / n - 1 / 3) : '—';
+    $('db').textContent = n ? fmtPP(S.wb / n - 5 / 12) : '—';
+    if (S.last) {
+      const { a, b1, b2 } = S.last;
+      $('lastA').innerHTML = die(a, C.a) + chip(a >= 5);
+      $('lastB').innerHTML = die(b1, C.b) + die(b2, C.b) + '<span class="meta">soma <b>' + (b1 + b2) + '</b></span>' + chip(b1 + b2 >= 8);
+    } else {
+      $('lastA').innerHTML = ''; $('lastB').innerHTML = '';
+    }
+    $('verdict').textContent = verdictMain();
+    drawMain();
+  }
+  function drawMain() {
+    const n = S.n;
+    drawChart($('chartMain'), {
+      n,
+      yMin: 0, yMax: 1, yTicks: [0, 0.25, 0.5, 0.75, 1],
+      yFmt: (v) => Math.round(v * 100) + '%',
+      xLabel: 'rodadas (escala logarítmica)',
+      empty: 'As provas aparecem aqui.',
+      refs: [{ y: 1 / 3, color: C.a }, { y: 5 / 12, color: C.b }],
+      series: [
+        { color: C.a, pts: n ? S.pa.concat([[n, S.wa / n]]) : [] },
+        { color: C.b, pts: n ? S.pb.concat([[n, S.wb / n]]) : [] }
+      ]
+    });
+  }
+  const runMain = makeRunner(stepMain, renderMain);
+  document.querySelectorAll('#p-laudo [data-n]').forEach((btn) => btn.addEventListener('click', () => runMain.add(+btn.dataset.n)));
+  $('reset').addEventListener('click', () => {
+    runMain.stop();
+    Object.assign(S, { n: 0, wa: 0, wb: 0, pa: [], pb: [], lastLog: -1, last: null });
+    renderMain();
+  });
+
+  /* ---------- aba 2: a turma ---------- */
+  const TEAMS = ['▲', '●', '■', '★', '⚡'];
+  function simTeam() {
+    let a = 0, b = 0;
+    for (let i = 0; i < 30; i++) { if (d6() >= 5) a++; if (d6() + d6() >= 8) b++; }
+    return { a, b };
+  }
+  const simClass = () => TEAMS.map(simTeam);
+  function winnerChip(a, b) {
+    if (a > b) return '<span class="chip a">A na frente</span>';
+    if (b > a) return '<span class="chip b">B na frente</span>';
+    return '<span class="chip">empate</span>';
+  }
+  function renderClass(cls) {
+    let ta = 0, tb = 0, contra = 0;
+    const rows = cls.map((t, i) => {
+      ta += t.a; tb += t.b; if (t.a >= t.b) contra++;
+      return '<tr><td>Equipe ' + TEAMS[i] + '</td><td class="ca">' + t.a + '</td><td class="ca">' + fmtPct(t.a / 30) +
+        '</td><td class="cb">' + t.b + '</td><td class="cb">' + fmtPct(t.b / 30) + '</td><td>' + winnerChip(t.a, t.b) + '</td></tr>';
+    });
+    rows.push('<tr class="total"><td>Total (150 cada)</td><td class="ca">' + ta + '</td><td class="ca">' + fmtPct(ta / 150) +
+      '</td><td class="cb">' + tb + '</td><td class="cb">' + fmtPct(tb / 150) + '</td><td>' + winnerChip(ta, tb) + '</td></tr>');
+    $('tbody').innerHTML = rows.join('');
+    const totalMsg = ta >= tb
+      ? ' E o total da turma também contrariou o laudo. 150 rodadas ainda não bastaram: hora da perícia com 10.000.'
+      : ' No total da turma, B ficou na frente.';
+    $('tverdict').textContent = (contra === 0 ? 'Nesta turma, B ficou na frente em todas as equipes.' :
+      contra === 1 ? 'Nesta turma, 1 equipe viu A empatar ou vencer B.' :
+      'Nesta turma, ' + contra + ' equipes viram A empatar ou vencer B.') + totalMsg;
+  }
+  $('t1').addEventListener('click', () => renderClass(simClass()));
+  $('t1000').addEventListener('click', () => {
+    let teamHits = 0, classHits = 0, last = null;
+    for (let k = 0; k < 1000; k++) {
+      const cls = simClass(); last = cls;
+      let ta = 0, tb = 0;
+      cls.forEach((t) => { if (t.a >= t.b) teamHits++; ta += t.a; tb += t.b; });
+      if (ta >= tb) classHits++;
+    }
+    renderClass(last);
+    $('sTeam').textContent = fmtPct(teamHits / 5000);
+    $('sClass').textContent = fmtPct(classHits / 1000);
+    $('tstats').hidden = false;
+    $('tverdict').textContent = 'Em 1.000 turmas simuladas, cerca de ' + fmtPct(teamHits / 5000) + ' das equipes viram A empatar ou vencer B. Somando as 5 equipes, isso caiu para ' + fmtPct(classHits / 1000) + ' das turmas. Mais provas, menos engano.';
+  });
+
+  /* ---------- aba 3: a banca ---------- */
+  const K = { n: 0, wins: 0, net: 0, pts: [], lastLog: -1, last: null };
+  function stepBank() {
+    const r1 = d6(), r2 = d6(), win = r1 + r2 >= 10;
+    K.n++;
+    if (win) { K.wins++; K.net += 2; } else { K.net -= 1; }
+    K.last = { r1, r2, win };
+    recorder(K, [[K.pts, K.net / K.n]]);
+  }
+  function renderBank() {
+    const n = K.n;
+    $('kN').textContent = fmtInt(n);
+    $('kWins').textContent = fmtInt(K.wins);
+    $('kNet').textContent = fmtSigned(K.net);
+    $('kHouse').textContent = fmtSigned(-K.net);
+    $('kAvg').textContent = n ? fmtDec(K.net / n) : '—';
+    $('kLast').innerHTML = K.last ? die(K.last.r1, C.red) + die(K.last.r2, C.red) + '<span class="meta">soma <b>' + (K.last.r1 + K.last.r2) + '</b></span>' + chip(K.last.win) : '';
+    let msg;
+    if (!n) msg = 'Faça a primeira jogada. Receber o triplo parece um ótimo negócio.';
+    else if (n < 50) msg = K.net >= 0 ? 'Até agora o jogador está no lucro. A sorte ajuda no começo. Continue jogando.' : 'O jogador já está no prejuízo, mas ainda são poucas jogadas.';
+    else if (K.net >= 0) msg = 'Depois de ' + fmtInt(n) + ' jogadas, o jogador ainda não está no prejuízo. Isso é raro. Jogue mais 1.000 vezes e veja o que acontece.';
+    else msg = 'Depois de ' + fmtInt(n) + ' jogadas, o jogador perdeu em média ' + (-K.net / n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ficha por jogada, e a banca acumulou ' + fmtInt(-K.net) + ' fichas. Ela não precisou de sorte.';
+    $('kverdict').textContent = msg;
+    drawBank();
+  }
+  function drawBank() {
+    const n = K.n;
+    drawChart($('chartBank'), {
+      n,
+      yMin: -1, yMax: 2, yTicks: [-1, -0.5, 0, 1, 2],
+      yFmt: (v) => v.toLocaleString('pt-BR', { maximumFractionDigits: 1, signDisplay: 'exceptZero' }),
+      xLabel: 'jogadas (escala logarítmica)',
+      empty: 'O saldo médio aparece aqui.',
+      refs: [{ y: -0.5, color: C.tape }],
+      series: [{ color: C.red, pts: n ? K.pts.concat([[n, K.net / n]]) : [] }]
+    });
+  }
+  const runBank = makeRunner(stepBank, renderBank);
+  document.querySelectorAll('#p-banca [data-k]').forEach((btn) => btn.addEventListener('click', () => runBank.add(+btn.dataset.k)));
+  $('kreset').addEventListener('click', () => {
+    runBank.stop();
+    Object.assign(K, { n: 0, wins: 0, net: 0, pts: [], lastLog: -1, last: null });
+    renderBank();
+  });
+
+  /* ---------- abas ---------- */
+  const tabs = { laudo: $('tab-laudo'), turma: $('tab-turma'), banca: $('tab-banca') };
+  function show(name) {
+    Object.keys(tabs).forEach((k) => {
+      const on = k === name;
+      tabs[k].setAttribute('aria-selected', on ? 'true' : 'false');
+      $('p-' + k).hidden = !on;
+    });
+    if (name === 'laudo') drawMain();
+    if (name === 'banca') drawBank();
+  }
+  Object.keys(tabs).forEach((k) => tabs[k].addEventListener('click', () => show(k)));
+  const h = (location.hash || '').replace('#', '');
+  show(tabs[h] ? h : 'laudo');
+
+  let rt = 0;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawMain(); drawBank(); }, 120); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawMain(); drawBank(); });
+
+  renderMain();
+  renderBank();
+})();
+</script>
